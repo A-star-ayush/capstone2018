@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Hello World!</title>
+  <link rel="stylesheet" type="text/css" href="css/index.css">
+</head>
+<body>
+ 	<div id="heading">
+ 		<h1 id="title">TRACK YOUR VEHICLE</h1>
+ 	</div>
+ 	<button id="gpsMenu">GPS</button>
+ 	<button id="userMenu">User</button></br>
+ 	<form id="gpsForm">
+ 		<input type="text" name="time" placeholder="Time" required />
+ 		<input type="text" name="source" placeholder="Source" required />
+ 		<input type="submit"><br><br>
+ 	</form>
+ 	<form id="userForm">
+ 		<input type="text" name="name" placeholder="Name" required />
+ 		<input type="password" name="pass" placeholder="Password" required />
+ 		<input type="submit"><br><br>
+ 	</form>
+ 	<div id="googleMap"></div>
+ 	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7uKoQ2JzOiFOqhV8HvlA-RHxBET4rgF0"></script>
+ 	<script src="src/index.js" type="text/javascript" charset="utf-8"></script>
+</body>
+</html>

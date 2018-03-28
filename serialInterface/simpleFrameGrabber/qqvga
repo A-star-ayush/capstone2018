@@ -1,0 +1,2 @@
+#!/bin/sh
+./grab 640 480 raw 2000000 /dev/ttyACM0 0
