@@ -1,6 +1,6 @@
 // TODO : passwd should not be displayed while typing
 
-const http_address = "http://127.0.0.1:10000/";
+const https_address = "https://127.0.0.1:10000/";
 
 window.onload = function() {
 	var gpsMenu = document.getElementById("gpsMenu");
@@ -45,12 +45,13 @@ window.onload = function() {
 	}
 
 	var session = 0;
-	var http = require('http');
 	var bl = require('bl');
 	var https = require('https');
 
-	function makeHTTPRequest(source, time, display, arr) {
-		http.get(http_address + "gps?source="+source+"&time="+time+"&session="+session, function(res) {
+	process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+	function makeHTTPSRequest(source, time, display, arr) {
+		https.get(https_address + "gps?source="+source+"&time="+time+"&session="+session, function(res) {
 			res.setEncoding('utf8');
 			var result = "";
 			res.on('data', function(data) {
@@ -98,7 +99,7 @@ window.onload = function() {
 		var time = gpsForm.time.value;
 		var source = gpsForm.source.value;
 
-		makeHTTPRequest(source, time, true);
+		makeHTTPSRequest(source, time, true);
 	};
 
 
@@ -121,7 +122,7 @@ window.onload = function() {
 		var name = userForm.name.value;
 		var pass = userForm.pass.value;
 
-		http.get(http_address + "usr?name="+name+"&pass="+pass, function(res) {
+		https.get(https_address + "usr?name="+name+"&pass="+pass, function(res) {
 			res.setEncoding('utf8');
 			var result = "";
 			res.on('data', function(data) {

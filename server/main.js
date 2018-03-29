@@ -26,8 +26,13 @@ var fs = require('fs');
 var udp = require('dgram');
 var tcp = require('net');
 var crypto = require('crypto');
-var http = require('http');
 var url = require('url');
+var https = require('https');
+
+var https_credentials = {
+	key : fs.readFileSync("key.pem"),
+	cert: fs.readFileSync("cert.pem")
+};
 
 
 /* ####### [ CACHE ] ####### */
@@ -453,7 +458,7 @@ function restResponse(req, res) {
 		respondWithError(res, "Must be either a valid GPS, USER or WISDOM request.");
 }
 
-let restServer = http.createServer(restResponse);
+let restServer = https.createServer(https_credentials, restResponse);
 restServer.listen(port_restAPI);
 
 console.log("Started a REST Server at port " + 10000 + ".");
