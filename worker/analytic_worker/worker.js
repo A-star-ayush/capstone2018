@@ -168,7 +168,7 @@ function processRequest(req) {
 							performRegression(data, req);
 						else {
 							if ("intervals" in req)
-								performOtherCalculations(data, req, intervals);
+								performOtherCalculations(data, req, req.intervals);
 							else
 								performOtherCalculations(data, req, 1);
 						}
@@ -185,7 +185,7 @@ function processRequest(req) {
 							performRegression(data, req);
 						else {
 							if ("intervals" in req)
-								performOtherCalculations(data, req, intervals);
+								performOtherCalculations(data, req, req.intervals);
 							else
 								performOtherCalculations(data, req, 1);
 						}
@@ -232,19 +232,28 @@ function distance(lat1, lng1, lat2, lng2) {
 
 function performOtherCalculations(data, req, intervals) {
 	let rply = [];
-	let intervalLength = data.time.length / intervals;
+	let intervalLength = Math.floor(data.time.length / intervals);
 
-	for (let j = 0; j < intervals; ++j) {
+	let startIndex = 0;
+	let endIndex = -1;
+
+	while (intervals--) {
 		let totalDistance = 0;
 		let averageSpeed = 0;
 
-		let startIndex = j * intervalLength;
-		let endIndex = startIndex + intervalLength;
+		startIndex = endIndex + 1;
+		endIndex = startIndex + intervalLength - 1;
+		if (intervals == 0)
+			endIndex = data.time.length - 1;
 
-		let timeElapsed = data.time[startIndex] - data.time[endIndex];
 
-		for (let i = startIndex; i < endIndex - 1; ++i)
-			totalDistance += distance(data.lat[i], data.lng[i], data.lat[i+1], data.lng[i+1]);
+		let timeElapsed = data.time[endIndex] - data.time[startIndex];
+
+		for (let i = startIndex; i < endIndex; ++i) {
+			let dist = distance(data.lat[i], data.lng[i], data.lat[i+1], data.lng[i+1]);
+			console.log(data.lat[i] + "," + data.lng[i] + " " + data.lat[i+1] + "," + data.lng[i+1] + " " + "dist: " + dist);
+			totalDistance += dist;
+		}
 	
 		averageSpeed = totalDistance / timeElapsed;
 	
