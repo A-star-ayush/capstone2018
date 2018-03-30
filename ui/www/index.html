@@ -1,28 +1,92 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Hello World!</title>
-  <link rel="stylesheet" type="text/css" href="css/index.css">
-</head>
+<title>OpenGPS</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" type="text/css" href="css/fonts.css">
+<link rel="stylesheet" type="text/css" href="css/w3.css">
+<link rel="stylesheet" type="text/css" href="css/index.css">
+
 <body>
- 	<div id="heading">
- 		<h1 id="title">TRACK YOUR VEHICLE</h1>
- 	</div>
- 	<button id="gpsMenu">GPS</button>
- 	<button id="userMenu">User</button></br>
- 	<form id="gpsForm">
- 		<input type="text" name="time" placeholder="Time" required />
- 		<input type="text" name="source" placeholder="Source" required />
- 		<input type="submit"><br><br>
+
+<!-- Links (sit on top) -->
+<div class="w3-top">
+  <div class="w3-row w3-padding w3-black">
+    <div class="w3-col s3">
+      <a href="#" class="w3-button w3-block w3-black">HOME</a>
+    </div>
+    <div class="w3-col s3">
+      <a href="#user" class="w3-button w3-block w3-black">USER</a>
+    </div>
+    <div class="w3-col s3">
+      <a href="#locate" class="w3-button w3-block w3-black">LOCATE</a>
+    </div>
+    <div class="w3-col s3">
+      <a href="#analyze" class="w3-button w3-block w3-black">ANALYZE</a>
+    </div>
+  </div>
+</div>
+
+<!-- Header with image -->
+<div class="bgimg w3-display-container w3-grayscale-min" id="home">
+  <div class="w3-display-bottomleft w3-center w3-padding-large w3-hide-small">
+    <span class="w3-tag">Track your vehicles.</span>
+  </div>
+  <div class="w3-display-bottomright w3-center w3-padding-large">
+    <span class="w3-tag">Anytime, Anywhere.</span>
+  </div>
+</div>
+
+<!-- Add a background color and large text to the whole page -->
+<div class="w3-sand w3-grayscale w3-large">
+
+<br><br>
+<p style="text-align: center;">Developed By : Avnish Garg, Rajat Goel &amp Ayush Agrawal.</p>
+
+<!-- About Container -->
+<div class="w3-container" id="user">
+  <div class="w3-content" style="max-width:700px">
+    <h5 class="w3-center w3-padding-64"><span class="w3-tag w3-wide">USER LOGIN</span></h5>
+    <p>Provide a valid user id and password to authenticate with the server. Only after the server verifies your identity, will you be able to use the other services.</p><br>
+    <form id="userForm">
+ 		<p><input class="w3-input w3-padding-16 w3-border" type="text" name="name" placeholder="Name" required /></p>
+ 		<p><input class="w3-input w3-padding-16 w3-border" type="password" name="pass" placeholder="Password" required /></p>
+ 		<p><input class="w3-button w3-black" type="submit" value="Authenticate"><br><br></p>
  	</form>
- 	<form id="userForm">
- 		<input type="text" name="name" placeholder="Name" required />
- 		<input type="password" name="pass" placeholder="Password" required />
- 		<input type="submit"><br><br>
+  </div>
+</div>
+
+<!-- Menu Container -->
+<div class="w3-container" id="locate">
+  <div class="w3-content" style="max-width:700px"><br>
+    <h5 class="w3-center w3-padding-48"><span class="w3-tag w3-wide">FETCH LOCATION</span></h5>
+ 	<form id="gpsForm">
+ 		<p><input class="w3-input w3-padding-16 w3-border" type="text" name="time" placeholder="dd/mm/yyyy" required /></p>
+ 		<p><input class="w3-input w3-padding-16 w3-border" type="text" name="source" placeholder="vehicle number" required /></p>
+ 		<p><input class="w3-button w3-black" type="submit" value="Get Location(s)"><br><br></p>
  	</form>
  	<div id="googleMap"></div>
- 	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7uKoQ2JzOiFOqhV8HvlA-RHxBET4rgF0"></script>
- 	<script src="src/index.js" type="text/javascript" charset="utf-8"></script>
+  <p id="geocodeOutput"></p>
+ </div>
+</div>
+
+<!-- Contact/Area Container -->
+<div class="w3-container" id="analyze" style="padding-bottom:32px;">
+  <div class="w3-content" style="max-width:700px">
+    <h5 class="w3-center w3-padding-48"><span class="w3-tag w3-wide">ANALYZE</span></h5>
+    <form id="analyticForm">
+      <p><input class="w3-input w3-padding-16 w3-border" type="text" name="timeFrom" placeholder="From: dd/mm/yyyy" /></p>
+      <p><input class="w3-input w3-padding-16 w3-border" type="text" name="time" placeholder="Predict: dd/mm/yyyy" /></p>
+      <p><input class="w3-input w3-padding-16 w3-border" type="text" name="source" placeholder="vehicle number" required /></p>
+      <p><input class="w3-input w3-padding-16 w3-border" type="number" name="intervals" placeholder="intervals" /></p>
+      <p><input class="w3-button w3-black" type="submit" value="Analyze"><br><br></p>
+  </form>
+  <p id="analyticOutput"></p>
+  </div>
+</div>
+
+ <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7uKoQ2JzOiFOqhV8HvlA-RHxBET4rgF0"></script>
+ <script src="src/index.js" type="text/javascript" charset="utf-8"></script>
+
 </body>
 </html>
