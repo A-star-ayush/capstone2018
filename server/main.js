@@ -174,6 +174,7 @@ function parseGPSData(msg, rinfo) {
 		return;
 	}
 
+	// TO DO : Transfer of floating values (precision) - convert to string
 	let timestamp = msg.readUInt32LE(len + 1);
 	let latitude = msg.readFloatLE(len + 5);
 	let longitude = msg.readFloatLE(len + 9);
@@ -450,9 +451,9 @@ function restResponse(req, res) {
 					requests[requestId] = { type: messageType.WISDOM, handle: res, source: queryData.source };
 					let req = { type: messageType.WISDOM, id : requestId, source: queryData.source };
 					if ("time" in queryData)
-						req.time = parseInt(queryData.timeFrom);
+						req.time = parseInt(queryData.time);
 					if ("timeFrom" in queryData)
-						req.timeFrom = parseInt(queryData.time);
+						req.timeFrom = parseInt(queryData.timeFrom);
 					if ("intervals" in queryData)
 						req.intervals = parseInt(queryData.intervals);
 					scheduleWorker(analyticWorkers, req, requests[requestId]);
