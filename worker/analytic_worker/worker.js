@@ -5,7 +5,7 @@ process.on('SIGINT', function(){
 
 /* ### Constants ### */
 
-const lb_ip = "127.0.0.1";
+const lb_ip = "13.126.97.148";
 const lb_port = 30000;
 const worker_type = "analytic";
 
@@ -19,6 +19,8 @@ const messageType = {
 	'HEARTBEAT' : 0x08,
 	'WISDOM' : 0x10
 };
+
+const R = 6371000;
 
 /* ### Required Modules ### */
 
@@ -148,13 +150,15 @@ function processRequirements(arr) {
 }
 
 function processRequest(req) {
+	console.log("Received a request");
+	
 	if (req.type == messageType.WISDOM) {
 		// console.log("Received a WISDOM request.");
 		// TO DO : Can perform some periodic regression even when there is no request
 
 		let data;
 		if ("timeFrom" in req) {
-			db.query("SELECT time, latitude, longitude from " + req.source + " WHERE time > " + req.timeFrom + ";",
+			db.query("SELECT time, latitude, longitude from " + req.source + " WHERE time > " + req.timeFrom + " ORDER BY time;",
 				function(err, results, fields) {
 					if (err)
 						console.log("Received an error while processing WISOM request: " + req.source + "," + req.timeFrom + ".");
@@ -162,12 +166,16 @@ function processRequest(req) {
 						data = parseQueryResult(results);
 						if ("time" in req)
 							performRegression(data, req);
-						else
-							performOtherCalculations(data, req);
+						else {
+							if ("intervals" in req)
+								performOtherCalculations(data, req, intervals);
+							else
+								performOtherCalculations(data, req, 1);
+						}
 					}
 			});
 		} else {
-			db.query("SELECT time, latitude, longitude from " + req.source + ";",
+			db.query("SELECT time, latitude, longitude from " + req.source + " ORDER BY time;",
 				function(err, results, fields) {
 					if (err)
 						console.log("Received an error while processing WISDOM request: " + req.source + ".");
@@ -175,8 +183,12 @@ function processRequest(req) {
 						data = parseQueryResult(results);
 						if ("time" in req)
 							performRegression(data, req);
-						else
-							performOtherCalculations(data, req);
+						else {
+							if ("intervals" in req)
+								performOtherCalculations(data, req, intervals);
+							else
+								performOtherCalculations(data, req, 1);
+						}
 					}
 			});
 		}
@@ -202,6 +214,42 @@ function performRegression(data, req) {
 							data: [regressionModel_lat.predict(req.time), regressionModel_lng.predict(req.time)] }));
 }
 
-function performOtherCalculations(data, req) {
-	mq.write(makeBuffer({ type: messageType.DATA, id: req.id, data: ["yet to be implemented 2.0"] }));
+
+// Using the Haversine formula to calculate distance
+function distance(lat1, lng1, lat2, lng2) {
+	let l1 = lat1 * Math.PI / 180;
+	let l2 = lng1 * Math.PI / 180;
+	let l3 = lat2 * Math.PI / 180;
+	let l4 = lng2 * Math.PI / 180;
+
+	let dl1 = l1 - l3;
+	let dl2 = l2 - l4;
+	let a = Math.pow(Math.sin(dl1 / 2), 2) + Math.cos(l1) * Math.cos(l3) * Math.pow(Math.sin(dl2 / 2), 2);
+	let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	
+	return c * R;
+}
+
+function performOtherCalculations(data, req, intervals) {
+	let rply = [];
+	let intervalLength = data.time.length / intervals;
+
+	for (let j = 0; j < intervals; ++j) {
+		let totalDistance = 0;
+		let averageSpeed = 0;
+
+		let startIndex = j * intervalLength;
+		let endIndex = startIndex + intervalLength;
+
+		let timeElapsed = data.time[startIndex] - data.time[endIndex];
+
+		for (let i = startIndex; i < endIndex - 1; ++i)
+			totalDistance += distance(data.lat[i], data.lng[i], data.lat[i+1], data.lng[i+1]);
+	
+		averageSpeed = totalDistance / timeElapsed;
+	
+		rply.push({'distance' : totalDistance, 'speed' : averageSpeed, 'time' : timeElapsed });
+	}
+	
+	mq.write(makeBuffer({ type: messageType.DATA, id: req.id, data: rply }));
 }

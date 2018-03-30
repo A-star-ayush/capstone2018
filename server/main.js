@@ -7,7 +7,7 @@ process.on('SIGINT', function(){
 
 /* ####### [ CONSTANTS ] ####### */
 
-const my_ip = "127.0.0.1";
+const my_ip = "0.0.0.0";
 const messageType = {
 	'PUSH': 0x01,
 	'FETCH' : 0x02,
@@ -157,6 +157,8 @@ function scheduleWorker(workers, message, request) {
 var gpsServer = udp.createSocket("udp4");
 gpsServer.on("message", parseGPSData);
 gpsServer.bind(port_dataSouce);
+
+console.log("Started data source server at port " + port_dataSouce + ".");
 
 function parseGPSData(msg, rinfo) {
 	let len = msg.readUInt8();
@@ -328,6 +330,7 @@ function registerWorker(client){
 						workers = analyticWorkers;
 					else
 						workers = dataWorkers;
+
 					let i;
 					for (i = 0; i < workers.length; ++i) {
 						if (workers[i]['mq'].remotePort == connection.remotePort)
@@ -360,6 +363,7 @@ function registerWorker(client){
 
 var registrationServer = tcp.createServer(registerWorker);
 registrationServer.listen(port_workerRegistration, my_ip);
+console.log("Started worker registration at port " + port_workerRegistration + ".");
 
 function readMQ(res, worker) {
 	if (res.type == messageType.DATA) {
@@ -446,7 +450,11 @@ function restResponse(req, res) {
 					requests[requestId] = { type: messageType.WISDOM, handle: res, source: queryData.source };
 					let req = { type: messageType.WISDOM, id : requestId, source: queryData.source };
 					if ("time" in queryData)
-						req.time = parseInt(queryData.time);
+						req.time = parseInt(queryData.timeFrom);
+					if ("timeFrom" in queryData)
+						req.timeFrom = parseInt(queryData.time);
+					if ("intervals" in queryData)
+						req.intervals = parseInt(queryData.intervals);
 					scheduleWorker(analyticWorkers, req, requests[requestId]);
 					requestId++;
 				}
@@ -461,4 +469,4 @@ function restResponse(req, res) {
 let restServer = https.createServer(https_credentials, restResponse);
 restServer.listen(port_restAPI);
 
-console.log("Started a REST Server at port " + 10000 + ".");
+console.log("Started a REST Server at port " + port_restAPI + ".");

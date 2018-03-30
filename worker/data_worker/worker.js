@@ -5,7 +5,7 @@ process.on('SIGINT', function(){
 
 /* ### Constants ### */
 
-const lb_ip = "127.0.0.1";
+const lb_ip = "13.126.97.148";
 const lb_port = 30000;
 const worker_type = "data";
 
@@ -166,6 +166,8 @@ function processRequirements(arr) {
 }
 
 function processRequest(req) {
+	console.log("Received a request");
+	
 	if (req.type == messageType.PUSH) {
 		// console.log("Received a PUSH request.");
 		db.query("INSERT INTO " + req.source + " VALUES (" + req.time +"," + req.lat + "," + req.lng + ");",
@@ -186,7 +188,7 @@ function processRequest(req) {
 					}
 			});
 		} else {
-			db.query("SELECT time, latitude, longitude from " + req.source + " WHERE time > " + req.time + ";",
+			db.query("SELECT time, latitude, longitude from " + req.source + " WHERE time > " + req.time + " ORDER BY time;",
 				function(err, results, fields) {
 					if (err)
 						console.log("Received an error while processing FETCH request: " + req.source + "," + req.time + ".");
