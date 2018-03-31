@@ -7,37 +7,54 @@ const userHook = "usr?";
 const gpsHook = "gps?";
 const wisdomHook = "wisdom?";
 
-window.onload = function() {
-	var gpsForm = document.getElementById("gpsForm");
-	var userForm = document.getElementById("userForm");
-	var analyticForm = document.getElementById("analyticForm");
+function $(id) {
+	return document.getElementById(id);
+}
 
-	var googleMap = document.getElementById("googleMap");
-	var geocodeOutput = document.getElementById("geocodeOutput");
-	var analyticOutput = document.getElementById("analyticOutput");
+window.onload = function() {
+
+	var gpsForm = $("gpsForm");
+	var userForm = $("userForm");
+	var analyticForm = $("analyticForm");
+
+	var googleMap = $("googleMap");
+	var geocodeOutput = $("geocodeOutput");
+	var analyticOutput = $("analyticOutput");
+
+	var gpsRadioButtons = $("gpsRadioButtons");
+	var gpsEntries = $("gpsEntries");
+	var radio_geocodelist = $("radio_geocodelist");
+	var radio_map = $("radio_map");
+
+
+	var gpsData = [];
+	var geocodeList = [];
 
 	var session = 0;
 	var https = require('https');
+	var httpsRequestCount = 0;
 
 	// to allow node to connect through https to websites with self-signed certificates
 	process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-	function myMap(lat, lng) {
+	function myMap() {
 		var mapProp = {
-    		center:new google.maps.LatLng(lat, lng),
+    		center:new google.maps.LatLng(gpsData[0].lat, gpsData[0].lng),
     		zoom:15,
 		};
 			
 		var map = new google.maps.Map(googleMap, mapProp);
-	
-		var marker = new google.maps.Marker({
-          position: new google.maps.LatLng(lat, lng),
-          map: map
-        });
+		
+		for (let i = 0; i < gpsData.length; ++i) {
+			var marker = new google.maps.Marker({
+          		position: new google.maps.LatLng(gpsData[i].lat, gpsData[i].lng),
+          		map: map
+        	});
+		}
         googleMap.style.display = "block";
 	}
 
-	function makeHTTPSRequest(https_address, hook, req, callback) {
+	function makeHTTPSRequest(https_address, hook, req, callback, callback_data) {
 		https.get(https_address + hook + req, function(res) {
 			res.setEncoding('utf8');
 			var result = "";
@@ -48,7 +65,7 @@ window.onload = function() {
 				var data = null;
 				if (res.statusCode == 200)
 					data = JSON.parse(result);
-				callback(res.statusCode, data);
+				callback(res.statusCode, data, callback_data);
 			});
 		}); 
 	}
@@ -63,6 +80,13 @@ window.onload = function() {
 
 	gpsForm.onsubmit = function(e) {
 		e.preventDefault();
+
+		gpsRadioButtons.style.display = "";
+		googleMap.style.display = "";
+		geocodeOutput.innerHTML = "";
+		radio_geocodelist.checked = false;
+		radio_map.checked = false;
+		
 		var time = gpsForm.time.value;
 		var source = gpsForm.source.value;
 		var request = "time=" + time + "&source=" + source + "&session=" + session;
@@ -93,21 +117,58 @@ window.onload = function() {
 		if (statusCode != 200) {
 			googleMap.style.display = "";
 			geocodeOutput.innerHTML = "Invalid server request";
+			gpsRadioButtons.style.display = "";
+			gpsData = null;
+			geocodeList = null;
 		}
 		else {
-			var first = data[0];
-			myMap(first.lat, first.lng);
-			var request = "latlng=" + first.lat +"," + first.lng + "&key=AIzaSyAj3V84hCmsgzxp_x_YESVNY1ttjgsoFY4";
+			gpsEntries.innerHTML = "[Entries: " + data.length + "]";
+			gpsRadioButtons.style.display = "block";
 			geocodeOutput.innerHTML = "";
-			makeHTTPSRequest(geocodeAddress, jsonHook, request, geocodeCallback);
+			gpsData = data;
+			geocodeList = [];
 		}
 	}
 
-	function geocodeCallback(statusCode, data) {
+	radio_geocodelist.onchange = radio_map.onchange = function(e) {
+		if (gpsData == null)
+			return;
+
+		if (radio_geocodelist.checked) {
+			googleMap.style.display = "";
+			if (geocodeList.length != gpsData.length) {
+				for (let i = 0; i < gpsData.length; ++i) {
+					let request = "latlng=" + gpsData[i].lat +"," + gpsData[i].lng + "&key=AIzaSyAj3V84hCmsgzxp_x_YESVNY1ttjgsoFY4";
+					++httpsRequestCount;
+					makeHTTPSRequest(geocodeAddress, jsonHook, request, geocodeCallback, i);
+				}
+			}
+			function displayGeocode() {
+				if (httpsRequestCount != 0) {
+					geocodeOutput.innerHTML = "Getting geolocations ...";
+					setTimeout(displayGeocode, 1000);
+				}
+				else {
+					geocodeOutput.innerHTML = "";
+					var output = "";
+					for (let i = 0; i < geocodeList.length; ++i)
+						output += gpsData[i].time + " : " + geocodeList[i];
+					geocodeOutput.innerHTML = output;
+				}
+			}
+			setTimeout(displayGeocode, 100);
+		} else if (radio_map.checked) {
+			geocodeOutput.innerHTML = "";
+			myMap();
+		}
+	}
+
+	function geocodeCallback(statusCode, data, index) {
+		--httpsRequestCount;
 		if (statusCode != 200)
-			geocodeOutput.innerHTML = "Invalid geocode request";
+			geocodeList[index] = "Invalid geocode request" + "<br>";
 		else 
-			geocodeOutput.innerHTML += data['results'][0]['formatted_address'] + "<br>";
+			geocodeList[index] = data['results'][0]['formatted_address'] + "<br>";
 	}
 
 	
@@ -115,7 +176,9 @@ window.onload = function() {
 		if (statusCode != 200)
 			analyticOutput.innerHTML = "Invalid request";
 		else {
-			analyticOutput.innerHTML = JSON.stringify(data);
+			analyticOutput.innerHTML = "Total Distance traveled: " + data[0].distance + " meters." + "<br>"
+									 + "Time Elapsed: " + data[0].time + " seconds." + "<br>"
+									 + "Average Speed: " + data[0].speed + " m/s." + "<br>";
 		}
 	}
 
