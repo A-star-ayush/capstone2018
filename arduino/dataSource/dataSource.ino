@@ -11,35 +11,35 @@ char dateTime[19];
 char latitude[11];
 char longitude[12];
 
+int hadLostConnectivity = 0;
+
 char checkSIM808[] = { "AT" };
 char turnOnGPS[] = { "AT+CGNSPWR=1" };
 char getGPS[] = { "AT+CGNSINF" };
+
+char gprsServiceStatus[] = { "AT+CGATT?" };
+char setModeSingle[] = { "AT+CIPMUX=0" };
+char setModeNormal[] = { "AT+CIPMODE=0" };
 char setAccessPoint[] = { "AT+CSTT=\"bsnlnet\"" };
+char wirelessConnection[] = { "AT+CIICR" };
+char getLocalIP[] = { "AT+CIFSR" };
+
+char connectToServer[] = { "AT+CIPSTART=\"UDP\",\"13.127.40.45\",\"20000\"" };
+char sendToServer[] = { "AT+CIPSEND" };
+char disconnectServer[] = { "AT+CIPCLOSE" };
 
 char OK[] = { "OK" };
+char GPRS_SERVICE_OK[] = { "+CGATT: 1" };
 
 char ERR_SIM808_INIT[] = { "Could not initialize SIM808. Waiting for 2 seconds." };
 char ERR_GPS_POWER[] = { "Could not power the gps. Trying again in 1 second." };
-char ERR_ACCESS_POINT[] = { "Could not set access point. Retrying in 100 millseconds." };
+char ERR_ACCESS_POINT[] = { "Could not set access point. Retrying in 1 second." };
+char ERR_OTHER[] = { " Some other error occured" };
 
-char serverIP[] = { "13.126.97.148" };
-char serverPort[] = { "20000" };
+
 
 // issue ATE0 to turn off echo .. use ATE0&W to write this configuration into non-volatile memory
 // at+cmee=<0, 1, 2> higher the value, more verbose is the error information
-
-// at+cgnspwr=1 to turn on gps
-// at+cgnsinf to get parsed NMEA information
-
-// at+csq to get singal quality report
-// at+cstt="bsnlnet" to specify the access point
-// at+ciicr to connect to the access point
-// at+cifst to get you local ip address
-
-// at+cipstart="TCP","publiIP","port" to make a TCP connection to the specified ip and port
-// at+cipsend to send data to the above connection
-    // > prompt will appear, termiate your message with 1A = 26
-// at+cipstatus to query the current connection status
 
 /*
 // Calculating distance using the Haversine Formulae
@@ -129,6 +129,8 @@ void parseGPS() {
 
 void sendCommand(char* cmd) {
   emptyReadBuffer();
+  Serial.print("SendCommand: ");
+  Serial.println(cmd);
   int i;
   for (i = 0; cmd[i] != '\0'; ++i) 
     Serial1.write(cmd[i]);
@@ -137,7 +139,7 @@ void sendCommand(char* cmd) {
   emptyWriteBuffer();
 }
 
-void readResponse() {
+void readResponse(int count  = 4) {
   int i = 0;
   int delimeters = 0;
   while(1) {
@@ -151,10 +153,12 @@ void readResponse() {
         response[i++] = inByte;
     }
 
-    if (delimeters == 4)
+    if (delimeters == count)
       break;
   }
   response[i] = '\0';
+  Serial.print("Response: ");
+  Serial.println(response);
 }
 
 boolean verify(char* request, char* expectedResponse) {
@@ -176,21 +180,35 @@ void loopUntil(char* request, char* expectedResponse, char* error, int delayTime
     }
 }
 
-/* Arduino Functions */
+void writeString(char* str) {
+  for (int i = 0; str[i] != '\0'; ++i)
+    Serial1.write(str[i]);
+}
 
-void setup() {
-  Serial.begin(9600);
-  Serial1.begin(9600);
-
-  Serial.println("Initialized the two Serial Interfaces.");
-  Serial.println("Waiting for SIM808 to initialize.");
+void pushGPS() {
+  sendCommand(connectToServer);
+  delay(5000);
+  sendCommand(sendToServer);
+  delay(2000);
+  emptyReadBuffer();
   
-  loopUntil(checkSIM808, OK, ERR_SIM808_INIT, WAIT_SIM808);
-  Serial.println("SIM808 Initialized.");
+  writeString(dateTime);
+  Serial1.write(',');
+  writeString(latitude);
+  Serial1.write(',');
+  writeString(longitude);
+  Serial1.write('\0');
+  Serial1.write(26);
 
-  loopUntil(turnOnGPS, OK, ERR_GPS_POWER, WAIT_GPSPOWER);
-  Serial.println("Turned on GPS Power.");
+  delay(3000);
+  sendCommand(disconnectServer);
+}
 
+void pushOffline() {
+  Serial.println("Offline. Yet to be implemented.");
+}
+
+void getSatelliteFix() {
   Serial.println("Waiting for a satellite fix.");
   while(1) {
     sendCommand(getGPS);
@@ -204,9 +222,40 @@ void setup() {
     }
   }
   Serial.println("Obtained a satellite fix.");
+}
 
-  loopUntil(setAccessPoint, OK, ERR_ACCESS_POINT, 100);
-  Serial.println("Set Access point name.");
+/* Arduino Functions */
+
+void setup() {
+  delay(5000);
+  Serial.begin(9600);
+  Serial1.begin(9600);
+
+  while(!Serial1);
+  
+  Serial.println("Initialized the two Serial Interfaces.");
+  Serial.println("Waiting for SIM808 to initialize.");
+  
+  loopUntil(checkSIM808, OK, ERR_SIM808_INIT, WAIT_SIM808);
+  Serial.println("SIM808 Initialized.");
+
+  loopUntil(turnOnGPS, OK, ERR_GPS_POWER, WAIT_GPSPOWER);
+  Serial.println("Turned on GPS Power.");
+
+  getSatelliteFix();
+
+  loopUntil(setModeSingle, OK, ERR_OTHER, 1000);
+  Serial.println("Set Single Communication Mode.");
+  loopUntil(setModeNormal, OK, ERR_OTHER, 1000);
+  Serial.println("Set normal / non-transparent mode.");
+  
+  Serial.println("Entering the loop.");
+  sendCommand(setAccessPoint);
+  readResponse();
+  sendCommand(wirelessConnection);
+  readResponse();
+  sendCommand(getLocalIP);
+  readResponse();
 }
 
 void loop() {
@@ -214,6 +263,26 @@ void loop() {
   readResponse();
   parseGPS();
 
+  if (fix[0] == '1') {
+    if (verify(gprsServiceStatus, GPRS_SERVICE_OK)){
+      if (hadLostConnectivity) {
+        sendCommand(setAccessPoint);
+        readResponse();
+        sendCommand(wirelessConnection);
+        readResponse();
+        sendCommand(getLocalIP);
+        readResponse();
+        hadLostConnectivity = 0;
+      }
+      pushGPS();
+    } else {
+      hadLostConnectivity = 1;
+      pushOffline(); 
+    }
+  } else {
+    Serial.println("Lost fix to the satellite");
+    getSatelliteFix();
+  }
   
   delay(WAIT_NEXTREADING);
 }
