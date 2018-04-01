@@ -5,6 +5,8 @@
 #define WAIT_GPSFIX 10000
 #define WAIT_NEXTREADING 10000
 
+char sourceId[] = { "MH0001" };
+
 char response[100];
 char fix[2];
 char dateTime[19];
@@ -116,7 +118,7 @@ void parseGPS() {
     return;
     
   str = str + strchr(str, ',') + 1;
-  strncpy(dateTime, str, 18, ',');
+  strncpy(dateTime, str, 18, '.');
   
   str = str + strchr(str, ',') + 1;
   strncpy(latitude, str, 10, ',');
@@ -191,13 +193,14 @@ void pushGPS() {
   sendCommand(sendToServer);
   delay(2000);
   emptyReadBuffer();
-  
+
+  writeString(sourceId);
+  Serial.write(',');
   writeString(dateTime);
   Serial1.write(',');
   writeString(latitude);
   Serial1.write(',');
   writeString(longitude);
-  Serial1.write('\0');
   Serial1.write(26);
 
   delay(3000);
