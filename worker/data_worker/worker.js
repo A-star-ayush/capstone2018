@@ -5,7 +5,7 @@ process.on('SIGINT', function(){
 
 /* ### Constants ### */
 
-const lb_ip = "13.126.97.148";
+const lb_ip = "127.0.0.1";
 const lb_port = 30000;
 const worker_type = "data";
 
@@ -202,7 +202,6 @@ function processRequest(req) {
 		console.log("Encountered a request of unknown type. Skipping.");
 }
 
-// TO DO : Check the output of JSON.stringify without the parsing
 function parseQueryResult(results) {
 	let ans = [];
 	for (let i = 0; i < results.length; ++i) {

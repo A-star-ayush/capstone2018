@@ -5,7 +5,7 @@ process.on('SIGINT', function(){
 
 /* ### Constants ### */
 
-const lb_ip = "13.126.97.148";
+const lb_ip = "127.0.0.1";
 const lb_port = 30000;
 const worker_type = "analytic";
 
@@ -153,9 +153,6 @@ function processRequest(req) {
 	console.log("Received a request");
 	
 	if (req.type == messageType.WISDOM) {
-		// console.log("Received a WISDOM request.");
-		// TO DO : Can perform some periodic regression even when there is no request
-
 		let data;
 		if ("timeFrom" in req) {
 			db.query("SELECT time, latitude, longitude from " + req.source + " WHERE time > " + req.timeFrom + " ORDER BY time;",
@@ -200,8 +197,8 @@ function parseQueryResult(results) {
 	let ans = { time: [], lat: [], lng: [] };
 	for (let i = 0; i < results.length; ++i) {
 		ans.time.push(results[i].time);
-		ans.lat.push(results[i].latitude);
-		ans.lng.push(results[i].longitude);
+		ans.lat.push(parseFloat(results[i].latitude));
+		ans.lng.push(parseFloat(results[i].longitude));
 	}
 	return ans;
 }

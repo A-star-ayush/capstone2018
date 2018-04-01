@@ -1,4 +1,3 @@
-
 process.on('SIGINT', function(){
 	console.log("Received a interrupt signal. Exiting.");
 	process.exit(1);
@@ -49,17 +48,16 @@ var analyticWorkers = [];
 var dataSchedule_state = {
 	'min_pendingRequests' : 9999999,
 	'max_requestsSince' : 0,
-	'updateCounter' : 0
+	'updateCounter' : 0,
+	'cache' : {}
 };
 
 var wisdomSchedule_state = {
 	'min_pendingRequests' : 9999999,
 	'max_requestsSince' : 0,
-	'updateCounter' : 0
+	'updateCounter' : 0,
+	'cache' : {}
 };
-
-
-let source_n_worker = {};
 
 function scheduleWorker(workers, message, request) {
 	if (workers.length == 0) {
@@ -78,15 +76,10 @@ function scheduleWorker(workers, message, request) {
 		state = dataSchedule_state;
 
 	/* SOURCE MODULE */
-	if (request != null && (request.source in source_n_worker)) {
-		assignedWorker = source_n_worker[request.source];
-		if (assignedWorker.pendingRequests > assignedWorker.capacity)
-			y_max = 0;
-		else {
-			let temp = assignedWorker.pendingRequests / assignedWorker.capacity;
-			y_max = (temp <= 1) ? 1 - temp : 0;
-			console.log("source, y_max : " + y_max);
-		}
+	if (request != null && (request.source in state.cache)) {
+		assignedWorker = state.cache[request.source];
+		if (assignedWorker.pendingRequests <= assignedWorker.capacity)
+			y_max = 1 - (assignedWorker.pendingRequests / assignedWorker.capacity);
 	}
 
 	/* JUMP MODULE */
@@ -95,8 +88,6 @@ function scheduleWorker(workers, message, request) {
 		let r = Math.floor(Math.random() * workers.length);
 		let worker = workers[r];
 		let requestsSince = requestId - worker.maxRequestId;
-
-		// console.log("r : " + r + " requestsSince : " + requestsSince + ".");
 
 		if (state.updateCounter == 0) {
 			state.min_pendingRequests = worker.pendingRequests;
@@ -120,14 +111,10 @@ function scheduleWorker(workers, message, request) {
 				--state.updateCounter;
 		}
 		
-		console.log("state.max_requestsSince : " + state.max_requestsSince + " state.min_pendingRequests : " + 
-			 state.min_pendingRequests + ".");
-
 		let x1 = (state.max_requestsSince == 0) ? 1 : requestsSince / state.max_requestsSince;
 		let x2 = (worker.pendingRequests == 0) ? 1 : state.min_pendingRequests / worker.pendingRequests;
 		let y = 0.4*x1 + 0.6*x2;
 
-		console.log("x1 : " + x1 + " x2 : " + x2 + " y : " + y + ".");
 		if (y <= y_max)
 			continue;
 		else {
@@ -136,7 +123,6 @@ function scheduleWorker(workers, message, request) {
 		}
 
 		let r2 = Math.random();
-		console.log("r2 : " + r2);
 		if (y >= r2)
 			break;
 	}
@@ -145,7 +131,7 @@ function scheduleWorker(workers, message, request) {
 		++assignedWorker.pendingRequests;
 		assignedWorker.maxRequestId = requestId;
 		request['worker'] = assignedWorker;
-		source_n_worker[request.source] = assignedWorker;
+		state.cache[request.source] = assignedWorker;
 	}
 	
 	assignedWorker['mq'].write(buf);
@@ -161,25 +147,14 @@ gpsServer.bind(port_dataSouce);
 console.log("Started data source server at port " + port_dataSouce + ".");
 
 function parseGPSData(msg, rinfo) {
-	let len = msg.readUInt8();
-	if (rinfo.size != (len + 13)) {
-		console.log("parseGPSData: malformed datagram.");
+	let tokens = msg.toString().split(',', 4);
+	if (tokens.length != 4) {
+		console.log("Invalid push request received from data source.");
 		return;
 	}
-
-	let sourceId = msg.toString('ascii', 1, len + 1);
-
-	if(knownSources.indexOf(sourceId) < 0) {
-		console.log("parseGPSData: Invalid source id.");
-		return;
-	}
-
-	// TO DO : Transfer of floating values (precision) - convert to string
-	let timestamp = msg.readUInt32LE(len + 1);
-	let latitude = msg.readFloatLE(len + 5);
-	let longitude = msg.readFloatLE(len + 9);
-
-	let req = { type: messageType.PUSH, source: sourceId, time: timestamp, lat: latitude, lng: longitude };
+	
+	let req = { type: messageType.PUSH, source: tokens[0], time: tokens[1], lat: tokens[2], lng: tokens[3] };
+	console.log(req);
 	scheduleWorker(dataWorkers, req, null);	
 }
 
@@ -272,11 +247,8 @@ function registerWorker(client){
 				worker['mq'] = connection;
 				worker.pendingRequests = 0;
 				worker.maxRequestId = requestId;
-				// TO DO : Ask the worker for its capacity
 				worker.capacity = 5;
 
-				// TO DO: Error Checking for other types here and the time of deletion
-				// Can be done here and at time of splicing or at the time of registration itself
 				if (worker.type === "analytic") {
 					analyticWorkers.push(worker);
 					wisdomSchedule_state.updateCounter = analyticWorkers.length;
@@ -324,7 +296,6 @@ function registerWorker(client){
 					workerExited();
 				});
 
-				// TO DO : Reschedule the requests assigned to the worker that just closed
 				function workerExited() {
 					let workers;
 					if (worker.type === "analytic")
@@ -354,7 +325,6 @@ function registerWorker(client){
 				}
 			});
 
-			// TODO: if no connection within a timeout, close worker server
 			workerServer.listen(workerPort, my_ip, 1);
 			client.end(workerPort.toString());
 			++workerPort;
@@ -369,14 +339,14 @@ console.log("Started worker registration at port " + port_workerRegistration + "
 function readMQ(res, worker) {
 	if (res.type == messageType.DATA) {
 		if (res.id in requests) {
-			let timeTaken = Date.now() - requests[res.id]['timestamp'];
-			requests[res.id]['handle'].writeHead(200, { 'content-type' : 'text/json' });
+			requests[res.id]['handle'].writeHead(200, { 'content-type' : 'text/json', 'Access-Control-Allow-Origin' : '*' });
 			requests[res.id]['handle'].end(JSON.stringify(res.data));
 			delete requests[res.id];
 			--worker.pendingRequests;
 		} else
 			console.log("Received a response with no matching request.");
-	}
+	} else
+		console.log("Received a response of unkown type.");
 }
 
 
@@ -388,7 +358,7 @@ var requests = {};
 let requestId = 0;
 
 function respondWithError(res, msg) {
-	res.writeHead(404, { 'content-type' : 'text/plain' });
+	res.writeHead(404, { 'content-type' : 'text/plain' , 'Access-Control-Allow-Origin' : '*' });
 	res.write(msg);
 	res.end();
 }
@@ -427,7 +397,8 @@ function restResponse(req, res) {
 					var id = Math.floor(Math.random() * 50000).toString();
 					currentSessions.push(id);
 					var tmp = { session: id };
-					res.writeHead(200, { 'content-type' : 'text/json' });
+					res.writeHead(200, { 'content-type' : 'text/json',
+										 'Access-Control-Allow-Origin' : '*' });
 					res.end(JSON.stringify(tmp));
 				} else
 					respondWithError(res, "The password is incorrect.");

@@ -1,6 +1,6 @@
 // TODO : passwd should not be displayed while typing
 
-const serverAddress = "https://13.126.97.148:10000/";
+const serverAddress = "https://13.127.40.45:10000/";
 const geocodeAddress = "https://maps.googleapis.com/maps/api/geocode/";
 const jsonHook = "json?";
 const userHook = "usr?";

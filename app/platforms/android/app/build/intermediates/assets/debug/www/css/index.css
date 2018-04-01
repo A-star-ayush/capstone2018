@@ -1,0 +1,26 @@
+body, html {
+    height: 100%;
+    font-family: "Inconsolata", sans-serif;
+}
+
+.bgimg {
+    background-position: center;
+    background-size: contain;
+    background-image: url("../img/img1.jpg");
+    background-repeat: no-repeat;
+    min-height: 40%;
+}
+
+.menu {
+    display: none;
+}
+
+#googleMap {
+    display: none;
+    width: 100%;
+    height: 400px;
+}
+
+#gpsRadioButtons {
+    display: none;
+}
