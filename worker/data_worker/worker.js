@@ -169,15 +169,13 @@ function processRequest(req) {
 	console.log("Received a request");
 	
 	if (req.type == messageType.PUSH) {
-		// console.log("Received a PUSH request.");
-		db.query("INSERT INTO " + req.source + " VALUES (" + req.time +"," + req.lat + "," + req.lng + ");",
+		db.query("INSERT INTO " + req.source + " VALUES (" + req.time + "," + req.lat + "," + req.lng + ");",
 			function (err, results, fields) {
 				if (err) 
 					console.log("Received an error while processing PUSH request: " + req.source + "," + req.time + ".");
 		});
 	} else if (req.type == messageType.FETCH) {
-		// console.log("Received a FETCH request.");
-		if (req.time == -1) {
+		if (req.time.length == 1) {
 			db.query("SELECT time, latitude, longitude from " + req.source + " ORDER BY time DESC LIMIT 1;",
 				function(err, results, fields) {
 					if (err) 

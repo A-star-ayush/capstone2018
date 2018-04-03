@@ -165,7 +165,7 @@ function processRequest(req) {
 							performRegression(data, req);
 						else {
 							if ("intervals" in req)
-								performOtherCalculations(data, req, req.intervals);
+								performOtherCalculations(data, req, parseInt(req.intervals));
 							else
 								performOtherCalculations(data, req, 1);
 						}
@@ -182,7 +182,7 @@ function processRequest(req) {
 							performRegression(data, req);
 						else {
 							if ("intervals" in req)
-								performOtherCalculations(data, req, req.intervals);
+								performOtherCalculations(data, req, parseInt(req.intervals));
 							else
 								performOtherCalculations(data, req, 1);
 						}
@@ -203,12 +203,22 @@ function parseQueryResult(results) {
 	return ans;
 }
 
+function trimToSix(str) {
+	let dec = str.indexOf(".");
+	if (str.length - dec > 7)
+		return str.slice(0, -(str.length - dec - 7));
+}
+
 function performRegression(data, req) {
 	const SLR = ml.SLR;
 	let regressionModel_lat = new SLR(data.time, data.lat);
 	let regressionModel_lng = new SLR(data.time, data.lng);
-	mq.write(makeBuffer({ type: messageType.DATA, id: req.id, 
-							data: [regressionModel_lat.predict(req.time), regressionModel_lng.predict(req.time)] }));
+	
+	let predicted_lat = regressionModel_lat.predict(parseInt(req.time)).toString();
+	let predicted_lng = regressionModel_lng.predict(parseInt(req.time)).toString();
+
+	mq.write(makeBuffer({ type: messageType.DATA, id: req.id,  
+						  data: [ trimToSix(predicted_lat), trimToSix(predicted_lng) ] }));
 }
 
 
@@ -246,11 +256,8 @@ function performOtherCalculations(data, req, intervals) {
 
 		let timeElapsed = data.time[endIndex] - data.time[startIndex];
 
-		for (let i = startIndex; i < endIndex; ++i) {
-			let dist = distance(data.lat[i], data.lng[i], data.lat[i+1], data.lng[i+1]);
-			console.log(data.lat[i] + "," + data.lng[i] + " " + data.lat[i+1] + "," + data.lng[i+1] + " " + "dist: " + dist);
-			totalDistance += dist;
-		}
+		for (let i = startIndex; i < endIndex; ++i)
+			totalDistance += distance(data.lat[i], data.lng[i], data.lat[i+1], data.lng[i+1]);
 	
 		averageSpeed = totalDistance / timeElapsed;
 	

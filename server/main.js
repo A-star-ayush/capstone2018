@@ -154,7 +154,6 @@ function parseGPSData(msg, rinfo) {
 	}
 	
 	let req = { type: messageType.PUSH, source: tokens[0], time: tokens[1], lat: tokens[2], lng: tokens[3] };
-	console.log(req);
 	scheduleWorker(dataWorkers, req, null);	
 }
 
@@ -243,7 +242,7 @@ function registerWorker(client){
 			}
 
 			let workerServer = tcp.createServer((connection) => {
-				console.log("Established a MQ with " + connection.remoteAddress + ":" + connection.remotePort +".");
+				console.log("Established a MQ with " + connection.remoteAddress + ":" + connection.remotePort + ".");
 				worker['mq'] = connection;
 				worker.pendingRequests = 0;
 				worker.maxRequestId = requestId;
@@ -298,10 +297,15 @@ function registerWorker(client){
 
 				function workerExited() {
 					let workers;
-					if (worker.type === "analytic")
+					let cache;
+					if (worker.type === "analytic") {
 						workers = analyticWorkers;
-					else
+						cache = wisdomSchedule_state.cache;
+					}
+					else {
 						workers = dataWorkers;
+						cache = dataSchedule_state.cache;
+					}
 
 					let i;
 					for (i = 0; i < workers.length; ++i) {
@@ -309,9 +313,9 @@ function registerWorker(client){
 							break;
 					}
 					if (i != workers.length) {
-						for (let source in source_n_worker) {
-							if (source_n_worker[source] == workers[i])
-								delete source_n_worker[source];
+						for (let source in cache) {
+							if (cache[source] == workers[i])
+								delete cache[source];
 						}
 
 						workers.splice(i, 1);
@@ -325,8 +329,8 @@ function registerWorker(client){
 				}
 			});
 
-			workerServer.listen(workerPort, my_ip, 1);
 			client.end(workerPort.toString());
+			workerServer.listen(workerPort, my_ip, 1);
 			++workerPort;
 		}
 	}
@@ -377,7 +381,7 @@ function restResponse(req, res) {
 						respondWithError(res, "No worker to assign the request to. Try again later.");
 					else {
 						requests[requestId] = { type: messageType.FETCH, handle: res, source: queryData.source };
-						let req = { type: messageType.FETCH, id : requestId, source: queryData.source, time: parseInt(queryData.time) };
+						let req = { type: messageType.FETCH, id : requestId, source: queryData.source, time: queryData.time };
 						scheduleWorker(dataWorkers, req, requests[requestId]);
 						requestId++;
 					}
@@ -422,11 +426,11 @@ function restResponse(req, res) {
 					requests[requestId] = { type: messageType.WISDOM, handle: res, source: queryData.source };
 					let req = { type: messageType.WISDOM, id : requestId, source: queryData.source };
 					if ("time" in queryData)
-						req.time = parseInt(queryData.time);
+						req.time = queryData.time;
 					if ("timeFrom" in queryData)
-						req.timeFrom = parseInt(queryData.timeFrom);
+						req.timeFrom = queryData.timeFrom;
 					if ("intervals" in queryData)
-						req.intervals = parseInt(queryData.intervals);
+						req.intervals = queryData.intervals;
 					scheduleWorker(analyticWorkers, req, requests[requestId]);
 					requestId++;
 				}
