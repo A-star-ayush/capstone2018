@@ -1,5 +1,5 @@
 #Internal package file, do not edit.
-#Sun Apr 01 06:18:38 IST 2018
+#Sun Apr 08 21:11:10 IST 2018
 25.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_/res/drawable-land-xxhdpi-v4/screen.png
 25.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_
 22.set=ANDROID_RESOURCE
@@ -11,7 +11,7 @@
 30.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/assets/debug
 14.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_
 16.set=ANDROID_RESOURCE
-count=35
+count=36
 6.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/assets/debug/www/cordova-js-src/android/nativeapiprovider.js
 6.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/assets/debug
 26.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_/res/mipmap-xhdpi-v4/icon.png
@@ -70,6 +70,7 @@ count=35
 5.set=ANDROID_RESOURCE
 18.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_/res/drawable-land-xhdpi-v4/screen.png
 9.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_
+35.set=ASSET
 18.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_
 11.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_/res/xml/config.xml
 29.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_/res/drawable-port-ldpi-v4/screen.png
@@ -98,6 +99,8 @@ count=35
 9.set=ANDROID_RESOURCE
 24.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/transforms/dexMerger/debug/0
 12.set=ASSET
+35.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/assets/debug/www/src/plotly.js
+35.base=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/assets/debug
 28.set=ASSET
 17.set=ANDROID_RESOURCE
 13.file=/media/ayush/Study/code/node.js/Capstone Project/app/platforms/android/app/build/intermediates/res/debug/resources-debug.ap_/res/drawable-land-mdpi-v4/screen.png

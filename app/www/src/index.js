@@ -1,10 +1,9 @@
-const serverAddress = "https://127.0.0.1:10000/";
+const serverAddress = "https://13.127.40.45:10000/";
 const geocodeAddress = "https://maps.googleapis.com/maps/api/geocode/";
 const jsonHook = "json?";
 const userHook = "usr?";
 const gpsHook = "gps?";
 const wisdomHook = "wisdom?";
-
 
 window.onload = function() {
 
@@ -41,6 +40,7 @@ window.onload = function() {
 		return tokens.slice(inputTokens, 6).join(":");
 	}
 
+
 	var gpsForm = $("gpsForm");
 	var userForm = $("userForm");
 	var analyticForm = $("analyticForm");
@@ -54,6 +54,7 @@ window.onload = function() {
 	var gpsEntries = $("gpsEntries");
 	var radio_geocodelist = $("radio_geocodelist");
 	var radio_map = $("radio_map");
+	var my_graph = $("myGraph");
 
 
 	var gpsData = [];
@@ -63,17 +64,17 @@ window.onload = function() {
 	var httpsRequestCount = 0;
 	var inputTokens = 0;
 
-	function myMap(gMap) {
+	function myMap(gMap, data) {
 		var mapProp = {
-    		center:new google.maps.LatLng(gpsData[0].lat, gpsData[0].lng),
+    		center:new google.maps.LatLng(data[0].lat, data[0].lng),
     		zoom:15,
 		};
 			
 		var map = new google.maps.Map(gMap, mapProp);
 		
-		for (let i = 0; i < gpsData.length; ++i) {
+		for (let i = 0; i < data.length; ++i) {
 			var marker = new google.maps.Marker({
-          		position: new google.maps.LatLng(gpsData[i].lat, gpsData[i].lng),
+          		position: new google.maps.LatLng(data[i].lat, data[i].lng),
           		map: map
         	});
 		}
@@ -100,7 +101,6 @@ window.onload = function() {
 		var pass = userForm.pass.value;
 		var request = "name=" + name + "&pass=" + pass;
 		makeHTTPSRequest(serverAddress, userHook, request, userCallback);
-		return false;
 	};
 
 	gpsForm.onsubmit = function(e) {
@@ -116,13 +116,14 @@ window.onload = function() {
 		var source = gpsForm.source.value;
 		var request = "time=" + time + "&source=" + source + "&session=" + session;
 		makeHTTPSRequest(serverAddress, gpsHook, request, gpsCallback);
-		return false;
 	};
 
 	analyticForm.onsubmit = function(e) {
 		e.preventDefault();
 		googleMap2.style.display = "";
 		analyticOutput.innerHTML = "";
+		my_graph.style.display = "";
+
 		var time = analyticForm.time.value;
 		if (time.length > 0)
 			time = formatTime(time);
@@ -192,7 +193,7 @@ window.onload = function() {
 			setTimeout(displayGeocode, 100);
 		} else if (radio_map.checked) {
 			geocodeOutput.innerHTML = "";
-			myMap(googleMap);
+			myMap(googleMap, gpsData);
 		}
 	}
 
@@ -205,23 +206,42 @@ window.onload = function() {
 	}
 
 	
-	ffunction analyticCallback(statusCode, data, type) {
+	function analyticCallback(statusCode, data, type) {
 		if (statusCode != 200) {
 			googleMap2.style.display = "";
+			my_graph.style.display = "";
 			analyticOutput.innerHTML = "Invalid request";
 		}
 		else {
 			if (type == 1) {
-				if (data[0] == "NaN" || data[1] == "NaN")
+				if (data[0] == "NaN" || data[1] == "NaN" || data[0] == "null" || data[1] == "null")
 					analyticOutput.innerHTML = "Cannot make a valid prediction with the dataset.";
 				else {
 					analyticOutput.innerHTML =  data[0] + "," + data[1];
-					myMap(googleMap2, [data[0], data[1]]);
+					myMap(googleMap2, [{ lat: data[0], lng: data[1] }]);
 				}
 			} else {
-				analyticOutput.innerHTML = "Total Distance traveled: " + data[0].distance + " meters." + "<br>"
-										 + "Time Elapsed: " + data[0].time + " seconds." + "<br>"
-										 + "Average Speed: " + data[0].speed + " m/s." + "<br>";
+				my_graph.style.display = "block";
+				let trace_distance = { x: [], y: [], type: 'scatter', name: 'Distance' };
+				let trace_time = { x: [], y: [], type: 'scatter', name: 'Time' };
+				let trace_speed = { x: [], y: [], type: 'scatter', name: 'Speed' };
+
+				for (let i = 0; i < data.length; ++i) {
+					trace_distance.x.push(i);
+					trace_distance.y.push(parseFloat(data[i].distance));
+
+					trace_time.x.push(i);
+					trace_time.y.push(data[i].time);
+
+					if (data[i].time != 0) {
+						trace_speed.x.push(i);
+						trace_speed.y.push(parseFloat(data[i].speed));
+					}
+				}
+
+				Plotly.newPlot(my_graph, [trace_distance, trace_time, trace_speed], {
+					title: 'Inference Plot'
+				});
 			}
 		}
 	}

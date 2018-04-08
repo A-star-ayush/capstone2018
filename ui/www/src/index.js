@@ -1,4 +1,4 @@
-const serverAddress = "https://127.0.0.1:10000/";
+const serverAddress = "https://13.127.40.45:10000/";
 const geocodeAddress = "https://maps.googleapis.com/maps/api/geocode/";
 const jsonHook = "json?";
 const userHook = "usr?";
@@ -54,6 +54,7 @@ window.onload = function() {
 	var gpsEntries = $("gpsEntries");
 	var radio_geocodelist = $("radio_geocodelist");
 	var radio_map = $("radio_map");
+	var my_graph = $("myGraph");
 
 
 	var gpsData = [];
@@ -127,6 +128,8 @@ window.onload = function() {
 		e.preventDefault();
 		googleMap2.style.display = "";
 		analyticOutput.innerHTML = "";
+		my_graph.style.display = "";
+
 		var time = analyticForm.time.value;
 		if (time.length > 0)
 			time = formatTime(time);
@@ -212,6 +215,7 @@ window.onload = function() {
 	function analyticCallback(statusCode, data, type) {
 		if (statusCode != 200) {
 			googleMap2.style.display = "";
+			my_graph.style.display = "";
 			analyticOutput.innerHTML = "Invalid request";
 		}
 		else {
@@ -223,9 +227,27 @@ window.onload = function() {
 					myMap(googleMap2, [{ lat: data[0], lng: data[1] }]);
 				}
 			} else {
-				analyticOutput.innerHTML = "Total Distance traveled: " + data[0].distance + " meters." + "<br>"
-										 + "Time Elapsed: " + data[0].time + " seconds." + "<br>"
-										 + "Average Speed: " + data[0].speed + " m/s." + "<br>";
+				my_graph.style.display = "block";
+				let trace_distance = { x: [], y: [], type: 'scatter', name: 'Distance' };
+				let trace_time = { x: [], y: [], type: 'scatter', name: 'Time' };
+				let trace_speed = { x: [], y: [], type: 'scatter', name: 'Speed' };
+
+				for (let i = 0; i < data.length; ++i) {
+					trace_distance.x.push(i);
+					trace_distance.y.push(parseFloat(data[i].distance));
+
+					trace_time.x.push(i);
+					trace_time.y.push(data[i].time);
+
+					if (data[i].time != 0) {
+						trace_speed.x.push(i);
+						trace_speed.y.push(parseFloat(data[i].speed));
+					}
+				}
+
+				Plotly.newPlot(my_graph, [trace_distance, trace_time, trace_speed], {
+					title: 'Inference Plot'
+				});
 			}
 		}
 	}

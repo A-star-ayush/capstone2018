@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ml-regression": "^4.4.2",
-    "mysql": "^2.15.0"
+    "mysql": "^2.15.0",
+    "regression": "^2.0.1"
   }
 }

@@ -29,3 +29,9 @@ body, html {
 #gpsRadioButtons {
     display: none;
 }
+
+#myGraph {
+    display: none;
+    width: 100%;
+    height: 400px;
+}

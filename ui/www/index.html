@@ -83,15 +83,17 @@
       <p><input class="w3-input w3-padding-16 w3-border" type="text" name="timeFrom" placeholder="From: yyyy/mm/dd/hh/mm/ss" /></p>
       <p><input class="w3-input w3-padding-16 w3-border" type="text" name="time" placeholder="Predict: yyyy/mm/dd/hh/mm/ss" /></p>
       <p><input class="w3-input w3-padding-16 w3-border" type="text" name="source" placeholder="vehicle number" required /></p>
-      <p><input class="w3-input w3-padding-16 w3-border" type="number" name="intervals" placeholder="intervals" /></p>
+      <p><input class="w3-input w3-padding-16 w3-border" type="text" name="intervals" placeholder="intervals" /></p>
       <p><input class="w3-button w3-black" type="submit" value="Analyze"><br><br></p>
   </form>
   <div id="googleMap2"></div>
   <p id="analyticOutput"></p>
+  <div id="myGraph"></div>
   </div>
 </div>
 
  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7uKoQ2JzOiFOqhV8HvlA-RHxBET4rgF0"></script>
+ <script src="src/plotly.js" type="text/javascript"></script>
  <script src="src/index.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

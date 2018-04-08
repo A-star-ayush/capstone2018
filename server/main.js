@@ -1,8 +1,31 @@
 process.on('SIGINT', function(){
 	console.log("Received a interrupt signal. Exiting.");
+	cleanUp();
 	process.exit(1);
 });
 
+process.on('SIGTERM', function(){
+	console.log("Received a termination signal. Exiting.");
+	cleanUp();
+	process.exit(1);
+});
+
+function cleanUp() {
+	if (typeof gpsServer !== 'undefined')
+		gpsServer.close();
+	if (typeof registrationServer !== 'undefined')
+		if (registrationServer.listening)
+			registrationServer.close();
+	if (typeof restServer !== 'undefined')
+		if (restServer.listening)
+			restServer.close();
+
+	for (let i = 0; i < dataWorkers.length; ++i)
+		dataWorkers[i]['mq'].destroy();
+
+	for (let i = 0; i < analyticWorkers.length; ++i)
+		analyticWorkers[i]['mq'].destroy();
+}
 
 /* ####### [ CONSTANTS ] ####### */
 
@@ -63,7 +86,8 @@ function scheduleWorker(workers, message, request) {
 	if (workers.length == 0) {
 		console.log("No workers. Cannot schedule request.");
 		return;
-	}
+	} else
+		console.log("Scheduling a request.");
 
 	let buf = makeBuffer(message);
 	let y_max = 0;
@@ -72,7 +96,7 @@ function scheduleWorker(workers, message, request) {
 	let state;
 	if (workers == analyticWorkers)
 		state = wisdomSchedule_state;
-	else
+	else 
 		state = dataSchedule_state;
 
 	/* SOURCE MODULE */
@@ -126,9 +150,9 @@ function scheduleWorker(workers, message, request) {
 		if (y >= r2)
 			break;
 	}
-	
+
 	if (request != null) {
-		++assignedWorker.pendingRequests;
+		assignedWorker.pendingRequests = assignedWorker.pendingRequests + 1;
 		assignedWorker.maxRequestId = requestId;
 		request['worker'] = assignedWorker;
 		state.cache[request.source] = assignedWorker;
@@ -151,7 +175,8 @@ function parseGPSData(msg, rinfo) {
 	if (tokens.length != 4) {
 		console.log("Invalid push request received from data source.");
 		return;
-	}
+	} else
+		console.log("Received a valid PUSH request.");
 	
 	let req = { type: messageType.PUSH, source: tokens[0], time: tokens[1], lat: tokens[2], lng: tokens[3] };
 	scheduleWorker(dataWorkers, req, null);	
@@ -243,6 +268,7 @@ function registerWorker(client){
 
 			let workerServer = tcp.createServer((connection) => {
 				console.log("Established a MQ with " + connection.remoteAddress + ":" + connection.remotePort + ".");
+				connection.setKeepAlive(true);
 				worker['mq'] = connection;
 				worker.pendingRequests = 0;
 				worker.maxRequestId = requestId;
@@ -349,7 +375,9 @@ function readMQ(res, worker) {
 			--worker.pendingRequests;
 		} else
 			console.log("Received a response with no matching request.");
-	} else
+	} else if (res.type == messageType.HEARTBEAT)
+		console.log("Received a heartbeat on " + worker['mq'].localPort + ".");
+	else
 		console.log("Received a response of unkown type.");
 }
 
@@ -382,6 +410,7 @@ function restResponse(req, res) {
 					else {
 						requests[requestId] = { type: messageType.FETCH, handle: res, source: queryData.source };
 						let req = { type: messageType.FETCH, id : requestId, source: queryData.source, time: queryData.time };
+						console.log("Received a valid REST GPS request.");
 						scheduleWorker(dataWorkers, req, requests[requestId]);
 						requestId++;
 					}
@@ -431,6 +460,7 @@ function restResponse(req, res) {
 						req.timeFrom = queryData.timeFrom;
 					if ("intervals" in queryData)
 						req.intervals = queryData.intervals;
+					console.log("Received a valid REST GPS request.");
 					scheduleWorker(analyticWorkers, req, requests[requestId]);
 					requestId++;
 				}

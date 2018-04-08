@@ -5,13 +5,13 @@ process.on('SIGINT', function(){
 
 /* ### Constants ### */
 
-const lb_ip = "127.0.0.1";
+const lb_ip = "13.127.40.45";
 const lb_port = 30000;
 const worker_type = "data";
 
-const db_host = 'localhost';
+const db_host = '192.168.43.93';
 const db_user = 'root';
-const db_passwd = 'qweasdzxc';
+const db_passwd = 'QweAsdZxc1!';
 const db_db = 'vehicles';
 
 const messageType = {
@@ -152,10 +152,23 @@ function processRequirements(arr) {
 
 				console.log("Connected to the database.");
 			});
+
+			setInterval(function() {
+				mq.write(makeBuffer({ type: messageType.HEARTBEAT }));
+			}, 5000);
 		});
 		
 		aggregateCallback = processRequest;
+		mq.setKeepAlive(true);
 		mq.on('data', aggregateData);
+		mq.on('error', () => {
+			console.log("Received an error on MQ. Exiting now.");
+			process.exit(1);
+		});
+		mq.on('end', ()=> {
+			console.log("MQ Ended. Exiting now.");
+			process.exit(1);
+		});
 		mq.on('close', () => {
 			console.log("MQ Closed. Exiting now.");
 			process.exit(1);
@@ -169,6 +182,8 @@ function processRequest(req) {
 	console.log("Received a request");
 	
 	if (req.type == messageType.PUSH) {
+		req.time = parseInt(req.time);
+		req.time += 53000;  // Adjust for UTC : India is 5 hours 30 minutes ahead of UTC
 		db.query("INSERT INTO " + req.source + " VALUES (" + req.time + "," + req.lat + "," + req.lng + ");",
 			function (err, results, fields) {
 				if (err) 

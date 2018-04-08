@@ -21,6 +21,19 @@ body, html {
     height: 400px;
 }
 
+#googleMap2 {
+    display: none;
+    width: 100%;
+    height: 400px;
+}
+
 #gpsRadioButtons {
     display: none;
+}
+
+
+#myGraph {
+    display: none;
+    width: 100%;
+    height: 400px;
 }

@@ -1,11 +1,21 @@
-// Before writing this program, issue ATE0&W to SIM808 once
+// issue ATE0 to turn off echo .. use ATE0&W to write this configuration into non-volatile memory (do this once to sim808)
+// at+cmee=<0, 1, 2> higher the value, more verbose is the error information
+
+#include <SD.h>
+#include <SPI.h>
+
+int CS_PIN = 53;
+
+File file;
+char fname[] = { "data.txt" };
+int offlineModeAvailable = 0;
 
 #define WAIT_SIM808 2000
 #define WAIT_GPSPOWER 1000
 #define WAIT_GPSFIX 10000
 #define WAIT_NEXTREADING 10000
 
-char sourceId[] = { "MH0001" };
+char sourceId[] = { "MH0010" };
 
 char response[100];
 char fix[2];
@@ -38,11 +48,6 @@ char ERR_GPS_POWER[] = { "Could not power the gps. Trying again in 1 second." };
 char ERR_ACCESS_POINT[] = { "Could not set access point. Retrying in 1 second." };
 char ERR_OTHER[] = { " Some other error occured" };
 
-
-
-// issue ATE0 to turn off echo .. use ATE0&W to write this configuration into non-volatile memory
-// at+cmee=<0, 1, 2> higher the value, more verbose is the error information
-
 /*
 // Calculating distance using the Haversine Formulae
 double R=6371000;
@@ -57,7 +62,8 @@ double c=2*atan2(sqrt(a),sqrt(1-a));
 double d=c*R;
 */
 
-/* Utility Functions */
+
+/*** Utility Functions ***/
 
 void emptyReadBuffer() {
   while (Serial1.available())
@@ -127,7 +133,9 @@ void parseGPS() {
   strncpy(longitude, str, 11, ',');
 }
 
-/* I/O Functions */
+
+
+/*** I/O Functions ***/
 
 void sendCommand(char* cmd) {
   emptyReadBuffer();
@@ -187,28 +195,63 @@ void writeString(char* str) {
     Serial1.write(str[i]);
 }
 
-void pushGPS() {
+void serverConnect() {
   sendCommand(connectToServer);
   delay(5000);
   sendCommand(sendToServer);
   delay(2000);
   emptyReadBuffer();
+}
 
+void serverDisconnect() {
+  delay(3000);
+  sendCommand(disconnectServer);
+  delay(3000);
+}
+
+void pushGPS() {
+  if (offlineModeAvailable) {
+    while(1) {
+      String str = readLine();
+      if (str.length() < 10)
+        break;
+      else {
+        serverConnect();
+        Serial1.print(str);
+        Serial1.print(26);
+        serverDisconnect();
+      }
+    }
+
+    SD.remove(fname);
+    if (createFile(fname)){
+      offlineModeAvailable = 1;
+      Serial.println("Offline mode available.");
+    } else
+        Serial.println("Offline mode unavailable.");
+  }
+  
+  serverConnect();
   writeString(sourceId);
-  Serial.write(',');
+  Serial1.write(',');
   writeString(dateTime);
   Serial1.write(',');
   writeString(latitude);
   Serial1.write(',');
   writeString(longitude);
   Serial1.write(26);
-
-  delay(3000);
-  sendCommand(disconnectServer);
+  serverDisconnect();
 }
 
 void pushOffline() {
-  Serial.println("Offline. Yet to be implemented.");
+  file.print(sourceId);
+  file.print(",");
+  file.print(dateTime);
+  file.print(",");
+  file.print(latitude);
+  file.print(",");
+  file.print(longitude);
+  file.print("\n");
 }
 
 void getSatelliteFix() {
@@ -227,7 +270,86 @@ void getSatelliteFix() {
   Serial.println("Obtained a satellite fix.");
 }
 
-/* Arduino Functions */
+void tryWirelessConnection() {
+  sendCommand(setAccessPoint);
+  readResponse();
+  sendCommand(wirelessConnection);
+  readResponse();
+  sendCommand(getLocalIP);
+  readResponse();
+}
+
+/*** SD Card Functions ***/
+
+boolean initializeSD()
+{
+  pinMode(CS_PIN, OUTPUT);
+
+  if (SD.begin())
+    return true;
+  else
+    return false;
+}
+
+int createFile(char filename[])
+{
+  file = SD.open(filename, FILE_WRITE);
+
+  if (file)
+  {
+    Serial.println("File created successfully.");
+    return 1;
+  } else
+  {
+    Serial.println("Error while creating file.");
+    return 0;
+  }
+}
+
+void closeFile()
+{
+  if (file)
+  {
+    file.close();
+    Serial.println("File closed");
+  }
+}
+
+int openFile(char filename[])
+{
+  file = SD.open(filename);
+  if (file)
+  {
+    Serial.println("File opened with success!");
+    return 1;
+  } else
+  {
+    Serial.println("Error opening file...");
+    return 0;
+  }
+}
+
+String readLine()
+{
+  String received = "";
+  char ch;
+  while (file.available())
+  {
+    ch = file.read();
+    if (ch == '\n')
+    {
+      return String(received);
+    }
+    else
+    {
+      received += ch;
+    }
+  }
+  return "";
+}
+
+
+/*** Arduino Functions ***/
 
 void setup() {
   delay(5000);
@@ -251,14 +373,21 @@ void setup() {
   Serial.println("Set Single Communication Mode.");
   loopUntil(setModeNormal, OK, ERR_OTHER, 1000);
   Serial.println("Set normal / non-transparent mode.");
+
+  Serial.println("Initializing SD card.");
+  if (initializeSD()) {
+    Serial.println("SD card initialized.");
+    if (createFile(fname)){
+      offlineModeAvailable = 1;
+      Serial.println("Offline mode available.");
+    } else
+        Serial.println("Offline mode unavailable.");
+  }
+  else
+    Serial.println("Problem initializing SD card. Offline mode unavailable.");
   
   Serial.println("Entering the loop.");
-  sendCommand(setAccessPoint);
-  readResponse();
-  sendCommand(wirelessConnection);
-  readResponse();
-  sendCommand(getLocalIP);
-  readResponse();
+  tryWirelessConnection();
 }
 
 void loop() {
@@ -269,18 +398,14 @@ void loop() {
   if (fix[0] == '1') {
     if (verify(gprsServiceStatus, GPRS_SERVICE_OK)){
       if (hadLostConnectivity) {
-        sendCommand(setAccessPoint);
-        readResponse();
-        sendCommand(wirelessConnection);
-        readResponse();
-        sendCommand(getLocalIP);
-        readResponse();
+        tryWirelessConnection();
         hadLostConnectivity = 0;
-      }
-      pushGPS();
+      } else
+          pushGPS();
     } else {
       hadLostConnectivity = 1;
-      pushOffline(); 
+      if (offlineModeAvailable)
+        pushOffline(); 
     }
   } else {
     Serial.println("Lost fix to the satellite");
