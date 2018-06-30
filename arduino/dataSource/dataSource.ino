@@ -15,7 +15,7 @@ int offlineModeAvailable = 0;
 #define WAIT_GPSFIX 10000
 #define WAIT_NEXTREADING 10000
 
-char sourceId[] = { "MH0010" };
+char sourceId[] = { "MH0008" };
 
 char response[100];
 char fix[2];
@@ -216,6 +216,8 @@ void pushGPS() {
       if (str.length() < 10)
         break;
       else {
+        Serial.print("Read from file: ");
+        Serial.println(str);
         serverConnect();
         Serial1.print(str);
         Serial1.print(26);
@@ -227,10 +229,13 @@ void pushGPS() {
     if (createFile(fname)){
       offlineModeAvailable = 1;
       Serial.println("Offline mode available.");
-    } else
+    } else {
         Serial.println("Offline mode unavailable.");
+        offlineModeAvailable = 0;
+    }
   }
-  
+
+  Serial.println("WAS HERE");
   serverConnect();
   writeString(sourceId);
   Serial1.write(',');
@@ -369,10 +374,15 @@ void setup() {
 
   getSatelliteFix();
 
-  loopUntil(setModeSingle, OK, ERR_OTHER, 1000);
-  Serial.println("Set Single Communication Mode.");
-  loopUntil(setModeNormal, OK, ERR_OTHER, 1000);
-  Serial.println("Set normal / non-transparent mode.");
+  sendCommand(setModeSingle);
+  readResponse();
+  sendCommand(setModeNormal);
+  readResponse();
+  
+  //loopUntil(setModeSingle, OK, ERR_OTHER, 1000);
+  //Serial.println("Set Single Communication Mode.");
+  //loopUntil(setModeNormal, OK, ERR_OTHER, 1000);
+  //Serial.println("Set normal / non-transparent mode.");
 
   Serial.println("Initializing SD card.");
   if (initializeSD()) {

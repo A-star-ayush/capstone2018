@@ -182,8 +182,38 @@ function processRequest(req) {
 	console.log("Received a request");
 	
 	if (req.type == messageType.PUSH) {
-		req.time = parseInt(req.time);
-		req.time += 53000;  // Adjust for UTC : India is 5 hours 30 minutes ahead of UTC
+		let day = 0;
+		let hours = 0;
+		let minutes = parseInt(req.time.slice(10, 12));
+		minutes += 30;
+		if (minutes > 59) {
+			++hours;
+			minutes -= 60;
+		}
+
+		minutes = minutes.toString();
+		if (minutes.length == 1)
+			minutes = "0" + minutes;
+
+		hours += parseInt(req.time.slice(8, 10));
+		hours += 5;	
+		if (hours > 23) {
+			++day;
+			hours -= 24;
+		}
+		hours = hours.toString();
+		if (hours.length == 1)
+			hours = "0" + hours;
+
+		day += parseInt(req.time.slice(6, 8));
+		day = day.toString();
+		if (day.length == 1)
+			day = "0" + day;
+
+		
+
+		req.time = req.time.slice(0, 6) + day + hours + minutes + req.time.slice(12, 14);
+
 		db.query("INSERT INTO " + req.source + " VALUES (" + req.time + "," + req.lat + "," + req.lng + ");",
 			function (err, results, fields) {
 				if (err) 
