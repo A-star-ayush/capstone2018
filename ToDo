@@ -1,0 +1,14 @@
+@Server
+Have the message parsing function return the passed message as it is without calling JSON.parse first. Because while replying request we are first doing JSON.parse and then JSON.stringify
+Ask the worker for its capacity
+Error checking for other types (other than data and analytic) at the time of adding them to the pool of workers
+Reschedule the requests assigned to the worker that just closed / exited
+If no connection within a timeout,  close worker registration
+Reclaim the port number upon after worker exists
+Something about that address already in use error that was encountered once
+
+@Data-worker
+Check the output of JSON.stringify without parsing the query results and establish the need of parsing the results
+
+@Analytic-worker
+Can perform some periodic regression even when there is no request
